@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tower: HARD REBIRTH - Debugged</title>
+    <title>Tower: HARD REBIRTH - Auto Save</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -15,6 +15,7 @@
         #game-screen {
             width: 100%; max-width: 600px; height: 98vh; background: var(--bg-dark);
             border: 3px solid var(--hero-red); display: flex; flex-direction: column; position: relative;
+            box-shadow: 0 0 50px rgba(255,0,0,0.2);
         }
 
         .header-bar {
@@ -54,7 +55,7 @@
 
 <div id="game-screen">
     <div class="header-bar">
-        <span>Tower</span>
+        <span>HARD REBIRTH [SAVING]</span>
         <span>FLOOR: <span id="ui-floor">1</span></span>
         <span style="color:#fc0">PTS: <span id="ui-pts">0</span></span>
     </div>
@@ -62,7 +63,7 @@
     <div class="status-area">
         <div class="hero-card">
             <div style="display:flex; justify-content:space-between">
-                <span style="color:var(--hero-red); font-weight:bold;">勇者</span>
+                <span style="color:var(--hero-red); font-weight:bold;">SOLO SURVIVOR</span>
                 <span style="color:var(--sp-cyan); font-weight:bold;">SP: <span id="ui-sp">10</span> / <span id="ui-msp">10</span></span>
             </div>
             <div class="hp-bar-outer"><div id="hp-bar" class="hp-bar-inner"></div></div>
@@ -87,6 +88,7 @@
 <script>
     const MONSTERS = ["💀","🐺","🕷️","👹","🐊","🔥","🐲","🦂","🌕","🧿","🦁","🌌"];
     const UNITS = ["", "K", "M", "B", "T", "Q", "P", "E", "Z", "Y"];
+    const SAVE_KEY = "tower_ascension_hard_rebirth_save";
 
     const SKILL_DB = {
         5: { name: "諸刃の剣", desc: "SP 15 | ATK×4 / 自分20%ダメ", cost: 15, logic: (h,e)=>{ const d=h.atk*4; h.hp-=h.maxHp*0.2; return d; } },
@@ -96,12 +98,45 @@
         25: { name: "不屈の精神", desc: "SP 40 | HP全快 / 防御×10ダメ", cost: 40, logic: (h,e)=>{ h.hp=h.maxHp; return h.def*10; } }
     };
 
+    // 初期ステート
     let state = {
-        floor: 1, pts: 0, sp: 10, turn: 0,
+        floor: 1, pts: 0, sp: 10,
         hero: { hp: 50, maxHp: 50, atk: 5, def: 2, msp: 10, immovable: false, focus: false, perma: 1.0 },
         upgrades: { hp:0, atk:0, def:0, sp:0 },
-        enemy: null, isBusy: false, defending: false
+        isBusy: false
     };
+
+    // --- セーブ機能 ---
+    function saveGame() {
+        const data = {
+            floor: state.floor,
+            pts: state.pts,
+            hero: state.hero,
+            upgrades: state.upgrades
+        };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+        console.log("Game Saved");
+    }
+
+    // --- ロード機能 ---
+    function loadGame() {
+        const saved = localStorage.getItem(SAVE_KEY);
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                state.floor = data.floor || 1;
+                state.pts = data.pts || 0;
+                state.hero = data.hero;
+                state.upgrades = data.upgrades;
+                // ロード直後はHP/SPを全快させておく（デッドループ防止）
+                state.hero.hp = state.hero.maxHp;
+                state.sp = state.hero.msp;
+                addLog("データをロードしました。", "#0f0");
+            } catch (e) {
+                console.error("Save data corrupted", e);
+            }
+        }
+    }
 
     function format(n) {
         if (n < 1000) return Math.floor(n);
@@ -136,10 +171,9 @@
         panel.innerHTML = "";
         const baseActions = [{id:'atk', name:'通常斬撃', cost:0, desc:'標準攻撃'}, {id:'def', name:'鉄壁防御', cost:0, desc:'被ダメ大幅減'}];
         
-        // 習得したスキルを並べる
         let skillButtons = [];
         Object.keys(SKILL_DB).forEach(floorKey => {
-            if (state.floor > floorKey) { // 階層を突破していたら表示
+            if (state.floor > floorKey) {
                 const s = SKILL_DB[floorKey];
                 skillButtons.push({id:'s_'+floorKey, ...s});
             }
@@ -222,11 +256,10 @@
         let e = state.enemy;
         let h = state.hero;
         let rawAtk = e.atk;
-        if (state.floor % 5 === 0 && state.turn % 3 === 0) { rawAtk *= 2.5; addLog("ボスの殺気が膨らむ！", "red"); }
+        if (state.floor % 5 === 0 && (state.turn % 3 === 0)) { rawAtk *= 2.5; addLog("ボスの殺気が膨らむ！", "red"); }
 
-        // 除算式防御: ATK * (100 / (100 + DEF))
         let dmg = rawAtk * (100 / (100 + h.def));
-        if (isImmovable) { dmg *= 0.1; addLog("不動の構えで耐える！"); }
+        if (isImmovable) dmg *= 0.1;
         else if (state.defending) dmg *= 0.35;
 
         h.hp = Math.max(0, h.hp - dmg);
@@ -237,16 +270,14 @@
     }
 
     function win() {
-        const isBoss = state.floor % 5 === 0;
         const gain = Math.floor(state.floor * 10 * state.hero.perma);
         state.pts += gain;
         addLog(`${state.floor}階層突破！ ${format(gain)} PTS獲得。`, "#ff0");
         
-        // SP 10% 回復制限
         state.sp = Math.min(state.hero.msp, state.sp + state.hero.msp * 0.1);
-        
-        // 階層を進める
         state.floor++;
+
+        saveGame(); // 勝利時に保存
         setTimeout(showStatMenu, 600);
     }
 
@@ -257,6 +288,7 @@
             state.hero.hp = state.hero.maxHp;
             state.sp = state.hero.msp;
             state.isBusy = false;
+            saveGame(); // 敗北時も階層リセットを保存
             showStatMenu();
         }, 1200);
     }
@@ -274,7 +306,8 @@
         <div style="display:flex; gap:10px;">
             <button class="btn-cmd" onclick="prestige()" style="flex:1; border-color:#f0f; text-align:center;">転生</button>
             <button class="btn-cmd" onclick="startFloor()" style="flex:1; border-color:#0f0; text-align:center;">次へ</button>
-        </div>`;
+        </div>
+        <button onclick="resetData()" style="margin-top:15px; background:none; border:none; color:#555; cursor:pointer; font-size:10px;">RESET ALL DATA</button>`;
     }
 
     function upgrade(t) {
@@ -287,7 +320,9 @@
         if(t==='atk') h.atk += 1;
         if(t==='def') h.def += 1;
         if(t==='sp') h.msp += 2;
-        h.hp = h.maxHp; // 強化時は全快
+        h.hp = h.maxHp;
+        
+        saveGame(); // ステータス割り振り時に保存
         showStatMenu(); 
         updateUI();
     }
@@ -301,6 +336,8 @@
         state.upgrades = { hp:0, atk:0, def:0, sp:0 };
         state.pts = 0;
         state.hero.hp = 50; state.sp = 10;
+
+        saveGame(); // 転生時に保存
         showStatMenu(); updateUI();
     }
 
@@ -312,8 +349,19 @@
         spawn();
     }
 
+    function resetData() {
+        if(confirm("全セーブデータを消去しますか？")) {
+            localStorage.removeItem(SAVE_KEY);
+            location.reload();
+        }
+    }
+
     function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    // ゲーム開始時の処理
+    loadGame();
     spawn();
+
 </script>
 </body>
 </html>
