@@ -6,7 +6,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ff4444">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>TowerDungeon</title>
+    <title>Tower Dungeon</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -14,28 +14,53 @@
         }
         * { box-sizing: border-box; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         body { background: #000; color: #e0e0e0; font-family: 'Noto Sans JP', sans-serif; margin: 0; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        #game-screen { width: 100%; max-width: 600px; height: 100vh; background: var(--bg-dark); border: 3px solid var(--hero-red); display: flex; flex-direction: column; position: relative; }
-        .header-bar { display: flex; justify-content: space-between; padding: 10px 15px; background: #1a0505; border-bottom: 2px solid var(--gold); font-size: 0.85em; color: var(--gold); font-family: 'Cinzel', serif; }
+
+        #game-screen {
+            width: 100%; max-width: 600px; height: 100vh; background: var(--bg-dark);
+            border: 3px solid var(--gold); display: flex; flex-direction: column; position: relative;
+        }
+
+        .header-bar {
+            display: flex; justify-content: space-between; padding: 10px 15px; 
+            background: linear-gradient(to bottom, #1a0505, #000); border-bottom: 2px solid var(--gold);
+            font-size: 0.9em; color: var(--gold); font-family: 'Cinzel', serif;
+        }
+
         .status-area { padding: 10px; background: #000; border-bottom: 1px solid #333; }
         .hero-card { background: rgba(30, 10, 10, 0.9); border: 2px solid var(--hero-red); padding: 10px; border-radius: 8px; }
         .hp-bar-outer { width: 100%; height: 10px; background: #222; border-radius: 5px; margin: 5px 0; overflow: hidden; }
         .hp-bar-inner { height: 100%; background: var(--hp-green); transition: width 0.3s; }
         .stat-grid-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.75em; color: #ccc; margin-top: 5px; }
+
         #arena { flex-grow: 1; display: flex; justify-content: center; align-items: center; background: radial-gradient(circle, #311 0%, #000 90%); position: relative; }
         .monster-sprite { font-size: 5rem; line-height: 1; margin-bottom: 10px; transition: transform 0.2s; }
         .monster-label { background: rgba(0,0,0,0.85); padding: 5px 15px; border-radius: 12px; border: 1px solid var(--hero-red); text-align: center; font-size: 0.8em; }
+
         #log { height: 100px; background: #000; border-top: 1px solid #333; padding: 10px; overflow-y: auto; font-size: 0.8em; line-height: 1.4; color: #ddd; }
+
         #action-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; background: #111; border-top: 2px solid var(--gold); height: 180px; overflow-y: auto; }
         .btn-cmd { background: #222; border: 1px solid var(--gold); color: #fff; padding: 8px; border-radius: 4px; cursor: pointer; text-align: left; font-size: 0.85em; }
         .btn-cmd:disabled { opacity: 0.2; cursor: not-allowed; }
         .btn-cmd small { display: block; font-size: 0.75em; color: #aaa; margin-top: 2px; }
-        .dmg-pop { position: absolute; font-size: 2.5rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 0 #000; animation: popUp 0.8s forwards; z-index: 100; }
+
+        .dmg-pop { position: absolute; font-size: 2.5rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 0 #000; pointer-events: none; animation: popUp 0.8s forwards; z-index: 100; }
         @keyframes popUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-80px); opacity: 0; } }
+
         .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: none; justify-content: center; align-items: center; z-index: 500; }
-        .modal { width: 90%; background: #1a0a0a; border: 2px solid var(--gold); padding: 15px; border-radius: 10px; text-align: center; max-height: 90%; overflow-y: auto;}
-        .stat-upgrade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 15px 0; }
+        .modal { width: 95%; background: #1a0a0a; border: 2px solid var(--gold); padding: 15px; border-radius: 10px; text-align: center; max-height: 95%; overflow-y: auto;}
+        
+        .mult-selector { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        .btn-mult { background: #333; color: #888; border: 1px solid #555; padding: 5px 15px; border-radius: 20px; cursor: pointer; font-size: 12px; }
+        .btn-mult.active { background: var(--gold); color: #000; border-color: #fff; font-weight: bold; }
+
+        .stat-upgrade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
         .save-controls { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #444; display: flex; gap: 5px; flex-wrap: wrap; }
         .btn-small { flex: 1; font-size: 10px; padding: 5px; background: #333; color: #ccc; border: 1px solid #555; cursor: pointer; }
+        
+        /* 危険地帯用スタイル */
+        .danger-zone { margin-top: 20px; border: 1px solid #400; padding: 10px; border-radius: 5px; }
+        .btn-danger { background: #300; color: #666; border: none; font-size: 9px; cursor: pointer; padding: 5px; }
+        
         .shake { animation: shakeEffect 0.15s infinite; }
         @keyframes shakeEffect { 0% { transform: translate(2px, 1px); } 50% { transform: translate(-2px, -1px); } }
     </style>
@@ -43,7 +68,7 @@
 <body>
 <div id="game-screen">
     <div class="header-bar">
-        <span>TowerDungeon</span>
+        <span>TOWER DUNGEON</span>
         <span>FLOOR: <span id="ui-floor">1</span></span>
         <span style="color:#fc0">PTS: <span id="ui-pts">0</span></span>
     </div>
@@ -75,14 +100,13 @@
 
     const MONSTERS = ["💀","🐺","🕷️","👹","🐊","🔥","🐲","🦂","🌕","🧿","🦁","🌌"];
     const UNITS = ["", "K", "M", "B", "T", "Q", "P", "E", "Z", "Y"];
-    const CURRENT_KEY = "tower_asc_hard_rebirth_local";
-    const OLD_KEY = "tower_ascension_hard_rebirth_save"; // 引っ越し元
+    const CURRENT_KEY = "tower_dungeon_save_v1";
 
     const SKILL_DB = {
         5: { name: "諸刃の剣", desc: "SP 15 | ATK×4 / 自分20%ダメ", cost: 15, logic: (h,e)=>{ const d=h.atk*4; h.hp-=h.maxHp*0.2; return d; } },
         10: { name: "不動の構え", desc: "SP 20 | 次ターン被ダメ90%減/行動不可", cost: 20, logic: (h,e)=>{ state.hero.immovable = true; return 0; } },
         15: { name: "貫通の一撃", desc: "SP 25 | 盾無視 ATK×3ダメ", cost: 25, logic: (h,e)=>h.atk*3, ignoreShield: true },
-        20: { name: "集中", desc: "SP 30 | 次のスキル威力3.5倍", cost: 30, logic: (h,e)=>{ state.hero.focus = true; return 0; } },
+        20: { name: "精神集中", desc: "SP 30 | 次のスキル威力3.5倍", cost: 30, logic: (h,e)=>{ state.hero.focus = true; return 0; } },
         25: { name: "不屈の精神", desc: "SP 40 | HP全快 / 防御×10ダメ", cost: 40, logic: (h,e)=>{ h.hp=h.maxHp; return h.def*10; } }
     };
 
@@ -90,53 +114,18 @@
         floor: 1, pts: 0, sp: 10, turn: 0,
         hero: { hp: 50, maxHp: 50, atk: 5, def: 2, msp: 10, immovable: false, focus: false, perma: 1.0 },
         upgrades: { hp:0, atk:0, def:0, sp:0 },
-        isBusy: false
+        isBusy: false,
+        buyAmount: 1
     };
 
-    // --- セーブ/ロード (Migration対応) ---
     function saveLocal() {
         const data = { f: state.floor, p: state.pts, h: state.hero, u: state.upgrades };
         localStorage.setItem(CURRENT_KEY, JSON.stringify(data));
     }
 
     function loadLocal() {
-        // 1. まず現在のキーを探す
         let saved = localStorage.getItem(CURRENT_KEY);
-        
-        // 2. もし無ければ、古い名前のキーを探す（引っ越し処理）
-        if (!saved) {
-            const oldSaved = localStorage.getItem(OLD_KEY);
-            if (oldSaved) {
-                console.log("Legacy data found. Migrating...");
-                const d = JSON.parse(oldSaved);
-                // 古い構造 { floor, pts, hero, upgrades } から新しい構造 { f, p, h, u } へ
-                const migrated = { f: d.floor, p: d.pts, h: d.hero, u: d.upgrades };
-                saved = JSON.stringify(migrated);
-                localStorage.setItem(CURRENT_KEY, saved); // 新しいキーで保存
-                // localStorage.removeItem(OLD_KEY); // 安全のため消さずに残す
-                addLog("古いセーブデータから引っ越ししました！", "#0f0");
-            }
-        }
-
         if (saved) applyData(JSON.parse(saved));
-    }
-
-    function exportCode() {
-        const data = { f: state.floor, p: state.pts, h: state.hero, u: state.upgrades };
-        const code = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-        prompt("セーブコード：", code);
-    }
-
-    function importCode() {
-        const code = prompt("セーブコード貼り付け：");
-        if (code) {
-            try {
-                const decoded = decodeURIComponent(escape(atob(code)));
-                applyData(JSON.parse(decoded));
-                saveLocal();
-                location.reload();
-            } catch (e) { alert("無効なコードです。"); }
-        }
     }
 
     function applyData(data) {
@@ -156,7 +145,15 @@
         l.scrollTop = 0;
     }
 
-    function getCost(type) { return 1 + Math.floor(state.upgrades[type] / 10); }
+    function getTotalCost(type, amount) {
+        let total = 0;
+        let tempLevel = state.upgrades[type];
+        for(let i=0; i<amount; i++) {
+            total += 1 + Math.floor(tempLevel / 10);
+            tempLevel++;
+        }
+        return total;
+    }
 
     function updateUI() {
         const h = state.hero;
@@ -207,12 +204,13 @@
         state.defending = (id === 'def');
         let dmg = 0;
         if (id === 'atk') { dmg = state.hero.atk; hit(dmg, "勇者の攻撃！"); }
-        else if (id === 'def') { addLog("防御姿勢。"); }
+        else if (id === 'def') { addLog("勇者は防御の姿勢をとった。"); }
         else if (id.startsWith('s_')) {
             const s = SKILL_DB[id.split('_')[1]];
             dmg = s.logic(state.hero, state.enemy);
-            if (state.hero.focus && dmg > 0) { dmg *= 3.5; state.hero.focus = false; addLog("集中！", "#fc0"); }
+            if (state.hero.focus && dmg > 0) { dmg *= 3.5; state.hero.focus = false; addLog("勇者の精神集中！威力倍加！", "#fc0"); }
             if (dmg > 0) hit(dmg, `${s.name}！！`, s.ignoreShield);
+            else addLog(`勇者は${s.name}を発動！`);
         }
         await wait(600);
         if (state.hero.hp <= 0) { die(); return; }
@@ -223,7 +221,7 @@
     function hit(d, t, ignore=false) {
         if (state.enemy.shield && !ignore) {
             const threshold = state.enemy.maxHp * 0.1;
-            if (d < threshold) { d = 1; addLog("無効化！", "#aaa"); }
+            if (d < threshold) { d = 1; addLog("シールドに阻まれた！", "#aaa"); }
         }
         state.enemy.hp -= d;
         addLog(`${t} ${format(d)}ダメ`);
@@ -237,11 +235,11 @@
     async function enemyTurn(isImm) {
         let e = state.enemy;
         let rawAtk = e.atk;
-        if (state.floor % 5 === 0 && (state.turn % 3 === 0)) { rawAtk *= 2.5; addLog("殺気！", "red"); }
+        if (state.floor % 5 === 0 && (state.turn % 3 === 0)) { rawAtk *= 2.5; addLog("ボスの魔力が膨れ上がる！", "red"); }
         let dmg = rawAtk * (100 / (100 + state.hero.def));
         if (isImm) dmg *= 0.1; else if (state.defending) dmg *= 0.35;
         state.hero.hp = Math.max(0, state.hero.hp - dmg);
-        addLog(`${e.icon}の攻撃！ ${format(dmg)}ダメ！`, "#f44");
+        addLog(`${e.icon}の攻撃！ 勇者は ${format(dmg)}ダメ！`, "#f44");
         updateUI();
         if (state.hero.hp <= 0) die();
         await wait(400);
@@ -250,7 +248,7 @@
     function win() {
         const gain = Math.floor(state.floor * 10 * state.hero.perma);
         state.pts += gain;
-        addLog(`${state.floor}F 突破！`, "#ff0");
+        addLog(`${state.floor}F 突破！ ${format(gain)} PTS獲得。`, "#ff0");
         state.sp = Math.min(state.hero.msp, state.sp + state.hero.msp * 0.1);
         state.floor++;
         saveLocal();
@@ -258,49 +256,74 @@
     }
 
     function die() {
-        addLog("敗北。1階へ戻る。", "red");
+        addLog("勇者は倒れた... 1階に戻る。", "red");
         setTimeout(() => {
             state.floor = 1; state.hero.hp = state.hero.maxHp; state.sp = state.hero.msp;
             state.isBusy = false; saveLocal(); showStatMenu();
         }, 1200);
     }
 
+    function setBuyAmount(n) { state.buyAmount = n; showStatMenu(); }
+
     function showStatMenu() {
         document.getElementById('overlay').style.display = 'flex';
         const modal = document.getElementById('modal-content');
+        
+        const costs = {
+            hp: getTotalCost('hp', state.buyAmount),
+            atk: getTotalCost('atk', state.buyAmount),
+            def: getTotalCost('def', state.buyAmount),
+            sp: getTotalCost('sp', state.buyAmount)
+        };
+
         modal.innerHTML = `<h2>能力強化 (PTS:${format(state.pts)})</h2>
-        <div class="stat-upgrade-grid">
-            <button class="btn-cmd" onclick="upgrade('hp')">HP+10<br><small>Cost: ${getCost('hp')}</small></button>
-            <button class="btn-cmd" onclick="upgrade('atk')">ATK+1<br><small>Cost: ${getCost('atk')}</small></button>
-            <button class="btn-cmd" onclick="upgrade('def')">DEF+1<br><small>Cost: ${getCost('def')}</small></button>
-            <button class="btn-cmd" onclick="upgrade('sp')">SP+2<br><small>Cost: ${getCost('sp')}</small></button>
+        
+        <div class="mult-selector">
+            <button class="btn-mult ${state.buyAmount===1?'active':''}" onclick="setBuyAmount(1)">x1</button>
+            <button class="btn-mult ${state.buyAmount===10?'active':''}" onclick="setBuyAmount(10)">x10</button>
+            <button class="btn-mult ${state.buyAmount===100?'active':''}" onclick="setBuyAmount(100)">x100</button>
         </div>
+
+        <div class="stat-upgrade-grid">
+            <button class="btn-cmd" onclick="upgrade('hp')" ${state.pts < costs.hp ? 'disabled' : ''}>HP+${10*state.buyAmount}<br><small>Cost: ${format(costs.hp)}</small></button>
+            <button class="btn-cmd" onclick="upgrade('atk')" ${state.pts < costs.atk ? 'disabled' : ''}>ATK+${1*state.buyAmount}<br><small>Cost: ${format(costs.atk)}</small></button>
+            <button class="btn-cmd" onclick="upgrade('def')" ${state.pts < costs.def ? 'disabled' : ''}>DEF+${1*state.buyAmount}<br><small>Cost: ${format(costs.def)}</small></button>
+            <button class="btn-cmd" onclick="upgrade('sp')" ${state.pts < costs.sp ? 'disabled' : ''}>SP+${2*state.buyAmount}<br><small>Cost: ${format(costs.sp)}</small></button>
+        </div>
+        
         <div style="display:flex; gap:10px;">
             <button class="btn-cmd" onclick="prestige()" style="flex:1; border-color:#f0f; text-align:center;">転生</button>
             <button class="btn-cmd" onclick="startFloor()" style="flex:1; border-color:#0f0; text-align:center;">次へ</button>
         </div>
+        
         <div class="save-controls">
             <button class="btn-small" onclick="exportCode()">コード発行</button>
             <button class="btn-small" onclick="importCode()">コード入力</button>
-            <button class="btn-small" onclick="resetAll()">データ全消去</button>
+        </div>
+
+        <div class="danger-zone">
+            <button class="btn-danger" onclick="safeReset()">セーブデータの完全消去</button>
         </div>`;
     }
 
     function upgrade(t) {
-        let cost = getCost(t);
-        if (state.pts < cost) return;
-        state.pts -= cost; state.upgrades[t]++;
-        if(t==='hp') state.hero.maxHp += 10;
-        if(t==='atk') state.hero.atk += 1;
-        if(t==='def') state.hero.def += 1;
-        if(t==='sp') state.hero.msp += 2;
+        let totalCost = getTotalCost(t, state.buyAmount);
+        if (state.pts < totalCost) return;
+        state.pts -= totalCost;
+        for(let i=0; i<state.buyAmount; i++) {
+            state.upgrades[t]++;
+            if(t==='hp') state.hero.maxHp += 10;
+            if(t==='atk') state.hero.atk += 1;
+            if(t==='def') state.hero.def += 1;
+            if(t==='sp') state.hero.msp += 2;
+        }
         state.hero.hp = state.hero.maxHp;
         saveLocal(); showStatMenu(); updateUI();
     }
 
     function prestige() {
         if (state.floor < 10) return alert("10F到達が必要。");
-        if (!confirm("転生しますか？")) return;
+        if (!confirm("すべてを捨てて転生しますか？永続倍率が加算されます。")) return;
         state.hero.perma += 0.5; state.floor = 1;
         state.hero.maxHp = 50; state.hero.atk = 5; state.hero.def = 2; state.hero.msp = 10;
         state.upgrades = { hp:0, atk:0, def:0, sp:0 };
@@ -309,10 +332,23 @@
     }
 
     function startFloor() { state.hero.hp = state.hero.maxHp; document.getElementById('overlay').style.display = 'none'; document.getElementById('log').innerHTML = ""; state.isBusy = false; spawn(); }
-    function resetAll() { if(confirm("消去しますか？")) { localStorage.removeItem(CURRENT_KEY); localStorage.removeItem(OLD_KEY); location.reload(); } }
+    
+    // データの安全消去
+    function safeReset() {
+        const input = prompt("【警告】これまでの全ての進行状況が完全に削除されます。\n本当に実行する場合は、半角大文字で 'RESET' と入力してください。");
+        if (input === "RESET") {
+            localStorage.removeItem(CURRENT_KEY);
+            alert("全てのデータを消去しました。ページを再読み込みします。");
+            location.reload();
+        } else {
+            alert("消去をキャンセルしました。");
+        }
+    }
+
+    function exportCode() { const d = { f: state.floor, p: state.pts, h: state.hero, u: state.upgrades }; prompt("他デバイスへの引継ぎコード：", btoa(unescape(encodeURIComponent(JSON.stringify(d))))); }
+    function importCode() { const code = prompt("セーブコード貼り付け："); if (code) { try { applyData(JSON.parse(decodeURIComponent(escape(atob(code))))); saveLocal(); location.reload(); } catch (e) { alert("無効なコードです。"); } } }
     function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
     
-    // --- 実行 ---
     loadLocal();
     spawn();
 </script>
