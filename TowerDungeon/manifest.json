@@ -1,0 +1,17 @@
+{
+  "name": "Solo Tower: HARD REBIRTH",
+  "short_name": "SoloTower",
+  "description": "孤独な勇者が無限の塔に挑むインフレRPG",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#050508",
+  "theme_color": "#ff4444",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1042/1042577.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
