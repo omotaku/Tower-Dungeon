@@ -3,13 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- PWA用設定 -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ff4444">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1042/1042577.png">
-
     <title>TowerDungeon</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -18,61 +14,43 @@
         }
         * { box-sizing: border-box; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         body { background: #000; color: #e0e0e0; font-family: 'Noto Sans JP', sans-serif; margin: 0; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-
-        #game-screen {
-            width: 100%; max-width: 600px; height: 100vh; background: var(--bg-dark);
-            border: 3px solid var(--hero-red); display: flex; flex-direction: column; position: relative;
-        }
-
-        .header-bar {
-            display: flex; justify-content: space-between; padding: 10px 15px;
-            background: #1a0505; border-bottom: 2px solid var(--gold);
-            font-size: 0.85em; color: var(--gold); font-family: 'Cinzel', serif;
-        }
-
+        #game-screen { width: 100%; max-width: 600px; height: 100vh; background: var(--bg-dark); border: 3px solid var(--hero-red); display: flex; flex-direction: column; position: relative; }
+        .header-bar { display: flex; justify-content: space-between; padding: 10px 15px; background: #1a0505; border-bottom: 2px solid var(--gold); font-size: 0.85em; color: var(--gold); font-family: 'Cinzel', serif; }
         .status-area { padding: 10px; background: #000; border-bottom: 1px solid #333; }
         .hero-card { background: rgba(30, 10, 10, 0.9); border: 2px solid var(--hero-red); padding: 10px; border-radius: 8px; }
         .hp-bar-outer { width: 100%; height: 10px; background: #222; border-radius: 5px; margin: 5px 0; overflow: hidden; }
         .hp-bar-inner { height: 100%; background: var(--hp-green); transition: width 0.3s; }
         .stat-grid-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.75em; color: #ccc; margin-top: 5px; }
-
         #arena { flex-grow: 1; display: flex; justify-content: center; align-items: center; background: radial-gradient(circle, #311 0%, #000 90%); position: relative; }
         .monster-sprite { font-size: 5rem; line-height: 1; margin-bottom: 10px; transition: transform 0.2s; }
         .monster-label { background: rgba(0,0,0,0.85); padding: 5px 15px; border-radius: 12px; border: 1px solid var(--hero-red); text-align: center; font-size: 0.8em; }
-
         #log { height: 100px; background: #000; border-top: 1px solid #333; padding: 10px; overflow-y: auto; font-size: 0.8em; line-height: 1.4; color: #ddd; }
-
         #action-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; background: #111; border-top: 2px solid var(--gold); height: 180px; overflow-y: auto; }
         .btn-cmd { background: #222; border: 1px solid var(--gold); color: #fff; padding: 8px; border-radius: 4px; cursor: pointer; text-align: left; font-size: 0.85em; }
         .btn-cmd:disabled { opacity: 0.2; cursor: not-allowed; }
         .btn-cmd small { display: block; font-size: 0.75em; color: #aaa; margin-top: 2px; }
-
-        .dmg-pop { position: absolute; font-size: 2.5rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 0 #000; pointer-events: none; animation: popUp 0.8s forwards; z-index: 100; }
+        .dmg-pop { position: absolute; font-size: 2.5rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 0 #000; animation: popUp 0.8s forwards; z-index: 100; }
         @keyframes popUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-80px); opacity: 0; } }
-
         .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: none; justify-content: center; align-items: center; z-index: 500; }
         .modal { width: 90%; background: #1a0a0a; border: 2px solid var(--gold); padding: 15px; border-radius: 10px; text-align: center; max-height: 90%; overflow-y: auto;}
         .stat-upgrade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 15px 0; }
         .save-controls { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #444; display: flex; gap: 5px; flex-wrap: wrap; }
         .btn-small { flex: 1; font-size: 10px; padding: 5px; background: #333; color: #ccc; border: 1px solid #555; cursor: pointer; }
-        
         .shake { animation: shakeEffect 0.15s infinite; }
         @keyframes shakeEffect { 0% { transform: translate(2px, 1px); } 50% { transform: translate(-2px, -1px); } }
     </style>
 </head>
 <body>
-
 <div id="game-screen">
     <div class="header-bar">
-        <span>Tower Dungeon</span>
+        <span>TowerDungeon</span>
         <span>FLOOR: <span id="ui-floor">1</span></span>
         <span style="color:#fc0">PTS: <span id="ui-pts">0</span></span>
     </div>
-
     <div class="status-area">
         <div class="hero-card">
             <div style="display:flex; justify-content:space-between">
-                <span style="color:var(--hero-red); font-weight:bold;">HERO</span>
+                <span style="color:var(--hero-red); font-weight:bold;">勇者</span>
                 <span style="color:var(--sp-cyan); font-weight:bold;">SP: <span id="ui-sp">10</span> / <span id="ui-msp">10</span></span>
             </div>
             <div class="hp-bar-outer"><div id="hp-bar" class="hp-bar-inner"></div></div>
@@ -84,25 +62,21 @@
             </div>
         </div>
     </div>
-
     <div id="arena"></div>
     <div id="log"></div>
     <div id="action-panel"></div>
-
     <div id="overlay" class="overlay">
         <div id="modal-content" class="modal"></div>
     </div>
 </div>
 
 <script>
-    // --- サービスワーカーの登録 ---
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').then(() => console.log('SW Registered'));
-    }
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 
     const MONSTERS = ["💀","🐺","🕷️","👹","🐊","🔥","🐲","🦂","🌕","🧿","🦁","🌌"];
     const UNITS = ["", "K", "M", "B", "T", "Q", "P", "E", "Z", "Y"];
-    const LOCAL_KEY = "tower_asc_hard_rebirth_local";
+    const CURRENT_KEY = "tower_asc_hard_rebirth_local";
+    const OLD_KEY = "tower_ascension_hard_rebirth_save"; // 引っ越し元
 
     const SKILL_DB = {
         5: { name: "諸刃の剣", desc: "SP 15 | ATK×4 / 自分20%ダメ", cost: 15, logic: (h,e)=>{ const d=h.atk*4; h.hp-=h.maxHp*0.2; return d; } },
@@ -119,24 +93,42 @@
         isBusy: false
     };
 
+    // --- セーブ/ロード (Migration対応) ---
     function saveLocal() {
         const data = { f: state.floor, p: state.pts, h: state.hero, u: state.upgrades };
-        localStorage.setItem(LOCAL_KEY, JSON.stringify(data));
+        localStorage.setItem(CURRENT_KEY, JSON.stringify(data));
     }
 
     function loadLocal() {
-        const saved = localStorage.getItem(LOCAL_KEY);
+        // 1. まず現在のキーを探す
+        let saved = localStorage.getItem(CURRENT_KEY);
+        
+        // 2. もし無ければ、古い名前のキーを探す（引っ越し処理）
+        if (!saved) {
+            const oldSaved = localStorage.getItem(OLD_KEY);
+            if (oldSaved) {
+                console.log("Legacy data found. Migrating...");
+                const d = JSON.parse(oldSaved);
+                // 古い構造 { floor, pts, hero, upgrades } から新しい構造 { f, p, h, u } へ
+                const migrated = { f: d.floor, p: d.pts, h: d.hero, u: d.upgrades };
+                saved = JSON.stringify(migrated);
+                localStorage.setItem(CURRENT_KEY, saved); // 新しいキーで保存
+                // localStorage.removeItem(OLD_KEY); // 安全のため消さずに残す
+                addLog("古いセーブデータから引っ越ししました！", "#0f0");
+            }
+        }
+
         if (saved) applyData(JSON.parse(saved));
     }
 
     function exportCode() {
         const data = { f: state.floor, p: state.pts, h: state.hero, u: state.upgrades };
         const code = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-        prompt("セーブコード（コピーしてください）：", code);
+        prompt("セーブコード：", code);
     }
 
     function importCode() {
-        const code = prompt("セーブコードを貼り付けてください：");
+        const code = prompt("セーブコード貼り付け：");
         if (code) {
             try {
                 const decoded = decodeURIComponent(escape(atob(code)));
@@ -204,40 +196,28 @@
             icon: isBoss ? "🏮" : MONSTERS[Math.min(MONSTERS.length-1, Math.floor(state.floor/8))],
             shield: (state.floor >= 15 && state.floor % 5 === 0)
         };
-        state.enemy.maxHp = state.enemy.hp;
-        state.turn = 0;
+        state.enemy.maxHp = state.enemy.hp; state.turn = 0;
         document.getElementById('arena').innerHTML = `<div id="m-unit"><div class="monster-sprite">${state.enemy.icon}</div><div class="monster-label">HP: ${format(state.enemy.hp)}<br>${state.enemy.shield?'[SHIELD ACTIVE]':''}</div></div>`;
         updateUI();
     }
 
     async function handleAction(id, cost) {
         if (state.isBusy) return;
-        state.isBusy = true;
-        state.sp -= cost;
-        state.turn++;
+        state.isBusy = true; state.sp -= cost; state.turn++;
         state.defending = (id === 'def');
         let dmg = 0;
-
-        if (id === 'atk') {
-            dmg = state.hero.atk;
-            hit(dmg, "勇者の攻撃！");
-        } else if (id === 'def') { addLog("防御姿勢。"); }
+        if (id === 'atk') { dmg = state.hero.atk; hit(dmg, "勇者の攻撃！"); }
+        else if (id === 'def') { addLog("防御姿勢。"); }
         else if (id.startsWith('s_')) {
             const s = SKILL_DB[id.split('_')[1]];
             dmg = s.logic(state.hero, state.enemy);
             if (state.hero.focus && dmg > 0) { dmg *= 3.5; state.hero.focus = false; addLog("集中！", "#fc0"); }
             if (dmg > 0) hit(dmg, `${s.name}！！`, s.ignoreShield);
         }
-
         await wait(600);
         if (state.hero.hp <= 0) { die(); return; }
         if (state.enemy.hp <= 0) { win(); }
-        else { 
-            await enemyTurn(state.hero.immovable);
-            state.hero.immovable = false;
-            state.isBusy = false;
-            updateUI();
-        }
+        else { await enemyTurn(state.hero.immovable); state.hero.immovable = false; state.isBusy = false; updateUI(); }
     }
 
     function hit(d, t, ignore=false) {
@@ -258,11 +238,8 @@
         let e = state.enemy;
         let rawAtk = e.atk;
         if (state.floor % 5 === 0 && (state.turn % 3 === 0)) { rawAtk *= 2.5; addLog("殺気！", "red"); }
-
         let dmg = rawAtk * (100 / (100 + state.hero.def));
-        if (isImm) dmg *= 0.1;
-        else if (state.defending) dmg *= 0.35;
-
+        if (isImm) dmg *= 0.1; else if (state.defending) dmg *= 0.35;
         state.hero.hp = Math.max(0, state.hero.hp - dmg);
         addLog(`${e.icon}の攻撃！ ${format(dmg)}ダメ！`, "#f44");
         updateUI();
@@ -305,7 +282,7 @@
         <div class="save-controls">
             <button class="btn-small" onclick="exportCode()">コード発行</button>
             <button class="btn-small" onclick="importCode()">コード入力</button>
-            <button class="btn-small" onclick="resetAll()">全消去</button>
+            <button class="btn-small" onclick="resetAll()">データ全消去</button>
         </div>`;
     }
 
@@ -331,15 +308,11 @@
         saveLocal(); showStatMenu(); updateUI();
     }
 
-    function startFloor() {
-        state.hero.hp = state.hero.maxHp;
-        document.getElementById('overlay').style.display = 'none';
-        document.getElementById('log').innerHTML = "";
-        state.isBusy = false; spawn();
-    }
-
-    function resetAll() { if(confirm("データを消去しますか？")) { localStorage.removeItem(LOCAL_KEY); location.reload(); } }
+    function startFloor() { state.hero.hp = state.hero.maxHp; document.getElementById('overlay').style.display = 'none'; document.getElementById('log').innerHTML = ""; state.isBusy = false; spawn(); }
+    function resetAll() { if(confirm("消去しますか？")) { localStorage.removeItem(CURRENT_KEY); localStorage.removeItem(OLD_KEY); location.reload(); } }
     function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+    
+    // --- 実行 ---
     loadLocal();
     spawn();
 </script>
