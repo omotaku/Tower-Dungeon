@@ -3,19 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tower: HARD REBIRTH</title>
+    <!-- PWA用設定 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ff4444">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1042/1042577.png">
+
+    <title>TowerDungeon</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --gold: #d4af37; --hero-red: #ff4444; --hp-green: #2ecc71; --sp-cyan: #00d4ff; --bg-dark: #050508;
         }
-        * { box-sizing: border-box; touch-action: manipulation; }
+        * { box-sizing: border-box; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         body { background: #000; color: #e0e0e0; font-family: 'Noto Sans JP', sans-serif; margin: 0; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
 
         #game-screen {
-            width: 100%; max-width: 600px; height: 98vh; background: var(--bg-dark);
+            width: 100%; max-width: 600px; height: 100vh; background: var(--bg-dark);
             border: 3px solid var(--hero-red); display: flex; flex-direction: column; position: relative;
-            box-shadow: 0 0 50px rgba(255,0,0,0.2);
         }
 
         .header-bar {
@@ -45,8 +51,11 @@
         @keyframes popUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-80px); opacity: 0; } }
 
         .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: none; justify-content: center; align-items: center; z-index: 500; }
-        .modal { width: 90%; background: #1a0a0a; border: 2px solid var(--hero-red); padding: 15px; border-radius: 10px; text-align: center; }
+        .modal { width: 90%; background: #1a0a0a; border: 2px solid var(--gold); padding: 15px; border-radius: 10px; text-align: center; max-height: 90%; overflow-y: auto;}
         .stat-upgrade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 15px 0; }
+        .save-controls { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #444; display: flex; gap: 5px; flex-wrap: wrap; }
+        .btn-small { flex: 1; font-size: 10px; padding: 5px; background: #333; color: #ccc; border: 1px solid #555; cursor: pointer; }
+        
         .shake { animation: shakeEffect 0.15s infinite; }
         @keyframes shakeEffect { 0% { transform: translate(2px, 1px); } 50% { transform: translate(-2px, -1px); } }
     </style>
@@ -55,7 +64,7 @@
 
 <div id="game-screen">
     <div class="header-bar">
-        <span>Tower Dungeon</span>
+        <span>HARD REBIRTH PWA</span>
         <span>FLOOR: <span id="ui-floor">1</span></span>
         <span style="color:#fc0">PTS: <span id="ui-pts">0</span></span>
     </div>
@@ -63,7 +72,7 @@
     <div class="status-area">
         <div class="hero-card">
             <div style="display:flex; justify-content:space-between">
-                <span style="color:var(--hero-red); font-weight:bold;">hero</span>
+                <span style="color:var(--hero-red); font-weight:bold;">HERO !New version→https://omotaku.github.io/Tower-Dungeon/TowerDungeon/index.html</span>
                 <span style="color:var(--sp-cyan); font-weight:bold;">SP: <span id="ui-sp">10</span> / <span id="ui-msp">10</span></span>
             </div>
             <div class="hp-bar-outer"><div id="hp-bar" class="hp-bar-inner"></div></div>
@@ -86,9 +95,14 @@
 </div>
 
 <script>
+    // --- サービスワーカーの登録 ---
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then(() => console.log('SW Registered'));
+    }
+
     const MONSTERS = ["💀","🐺","🕷️","👹","🐊","🔥","🐲","🦂","🌕","🧿","🦁","🌌"];
     const UNITS = ["", "K", "M", "B", "T", "Q", "P", "E", "Z", "Y"];
-    const SAVE_KEY = "tower_ascension_hard_rebirth_save";
+    const LOCAL_KEY = "tower_asc_hard_rebirth_local";
 
     const SKILL_DB = {
         5: { name: "諸刃の剣", desc: "SP 15 | ATK×4 / 自分20%ダメ", cost: 15, logic: (h,e)=>{ const d=h.atk*4; h.hp-=h.maxHp*0.2; return d; } },
@@ -98,44 +112,44 @@
         25: { name: "不屈の精神", desc: "SP 40 | HP全快 / 防御×10ダメ", cost: 40, logic: (h,e)=>{ h.hp=h.maxHp; return h.def*10; } }
     };
 
-    // 初期ステート
     let state = {
-        floor: 1, pts: 0, sp: 10,
+        floor: 1, pts: 0, sp: 10, turn: 0,
         hero: { hp: 50, maxHp: 50, atk: 5, def: 2, msp: 10, immovable: false, focus: false, perma: 1.0 },
         upgrades: { hp:0, atk:0, def:0, sp:0 },
         isBusy: false
     };
 
-    // --- セーブ機能 ---
-    function saveGame() {
-        const data = {
-            floor: state.floor,
-            pts: state.pts,
-            hero: state.hero,
-            upgrades: state.upgrades
-        };
-        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-        console.log("Game Saved");
+    function saveLocal() {
+        const data = { f: state.floor, p: state.pts, h: state.hero, u: state.upgrades };
+        localStorage.setItem(LOCAL_KEY, JSON.stringify(data));
     }
 
-    // --- ロード機能 ---
-    function loadGame() {
-        const saved = localStorage.getItem(SAVE_KEY);
-        if (saved) {
+    function loadLocal() {
+        const saved = localStorage.getItem(LOCAL_KEY);
+        if (saved) applyData(JSON.parse(saved));
+    }
+
+    function exportCode() {
+        const data = { f: state.floor, p: state.pts, h: state.hero, u: state.upgrades };
+        const code = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+        prompt("セーブコード（コピーしてください）：", code);
+    }
+
+    function importCode() {
+        const code = prompt("セーブコードを貼り付けてください：");
+        if (code) {
             try {
-                const data = JSON.parse(saved);
-                state.floor = data.floor || 1;
-                state.pts = data.pts || 0;
-                state.hero = data.hero;
-                state.upgrades = data.upgrades;
-                // ロード直後はHP/SPを全快させておく（デッドループ防止）
-                state.hero.hp = state.hero.maxHp;
-                state.sp = state.hero.msp;
-                addLog("データをロードしました。", "#0f0");
-            } catch (e) {
-                console.error("Save data corrupted", e);
-            }
+                const decoded = decodeURIComponent(escape(atob(code)));
+                applyData(JSON.parse(decoded));
+                saveLocal();
+                location.reload();
+            } catch (e) { alert("無効なコードです。"); }
         }
+    }
+
+    function applyData(data) {
+        state.floor = data.f; state.pts = data.p; state.hero = data.h; state.upgrades = data.u;
+        state.hero.hp = state.hero.maxHp; state.sp = state.hero.msp;
     }
 
     function format(n) {
@@ -150,9 +164,7 @@
         l.scrollTop = 0;
     }
 
-    function getCost(type) {
-        return 1 + Math.floor(state.upgrades[type] / 10);
-    }
+    function getCost(type) { return 1 + Math.floor(state.upgrades[type] / 10); }
 
     function updateUI() {
         const h = state.hero;
@@ -170,16 +182,10 @@
         const panel = document.getElementById('action-panel');
         panel.innerHTML = "";
         const baseActions = [{id:'atk', name:'通常斬撃', cost:0, desc:'標準攻撃'}, {id:'def', name:'鉄壁防御', cost:0, desc:'被ダメ大幅減'}];
-        
-        let skillButtons = [];
-        Object.keys(SKILL_DB).forEach(floorKey => {
-            if (state.floor > floorKey) {
-                const s = SKILL_DB[floorKey];
-                skillButtons.push({id:'s_'+floorKey, ...s});
-            }
-        });
+        let skills = [];
+        Object.keys(SKILL_DB).forEach(k => { if(state.floor > k) skills.push({id:'s_'+k, ...SKILL_DB[k]}); });
 
-        baseActions.concat(skillButtons).forEach(s => {
+        baseActions.concat(skills).forEach(s => {
             const b = document.createElement('button');
             b.className = 'btn-cmd';
             b.disabled = state.isBusy || state.sp < s.cost;
@@ -215,15 +221,12 @@
         if (id === 'atk') {
             dmg = state.hero.atk;
             hit(dmg, "勇者の攻撃！");
-        } else if (id === 'def') {
-            addLog("防御姿勢！");
-        } else if (id.startsWith('s_')) {
-            const skillKey = id.split('_')[1];
-            const s = SKILL_DB[skillKey];
+        } else if (id === 'def') { addLog("防御姿勢。"); }
+        else if (id.startsWith('s_')) {
+            const s = SKILL_DB[id.split('_')[1]];
             dmg = s.logic(state.hero, state.enemy);
-            if (state.hero.focus && dmg > 0) { dmg *= 3.5; state.hero.focus = false; addLog("精神集中：極大ダメージ！", "#fc0"); }
+            if (state.hero.focus && dmg > 0) { dmg *= 3.5; state.hero.focus = false; addLog("集中！", "#fc0"); }
             if (dmg > 0) hit(dmg, `${s.name}！！`, s.ignoreShield);
-            else addLog(`${s.name}！`);
         }
 
         await wait(600);
@@ -240,56 +243,48 @@
     function hit(d, t, ignore=false) {
         if (state.enemy.shield && !ignore) {
             const threshold = state.enemy.maxHp * 0.1;
-            if (d < threshold) { d = 1; addLog("シールドが攻撃を無効化した！", "#aaa"); }
+            if (d < threshold) { d = 1; addLog("無効化！", "#aaa"); }
         }
         state.enemy.hp -= d;
-        addLog(`${t} ${format(d)}ダメージ`);
+        addLog(`${t} ${format(d)}ダメ`);
         const p = document.createElement('div'); p.className='dmg-pop'; p.innerText=format(d);
         document.getElementById('arena').appendChild(p);
         setTimeout(()=>p.remove(), 800);
         document.getElementById('m-unit').classList.add('shake');
         setTimeout(()=>document.getElementById('m-unit').classList.remove('shake'), 200);
-        if (state.enemy.hp <= 0) state.enemy.hp = 0;
     }
 
-    async function enemyTurn(isImmovable) {
+    async function enemyTurn(isImm) {
         let e = state.enemy;
-        let h = state.hero;
         let rawAtk = e.atk;
-        if (state.floor % 5 === 0 && (state.turn % 3 === 0)) { rawAtk *= 2.5; addLog("ボスの殺気が膨らむ！", "red"); }
+        if (state.floor % 5 === 0 && (state.turn % 3 === 0)) { rawAtk *= 2.5; addLog("殺気！", "red"); }
 
-        let dmg = rawAtk * (100 / (100 + h.def));
-        if (isImmovable) dmg *= 0.1;
+        let dmg = rawAtk * (100 / (100 + state.hero.def));
+        if (isImm) dmg *= 0.1;
         else if (state.defending) dmg *= 0.35;
 
-        h.hp = Math.max(0, h.hp - dmg);
+        state.hero.hp = Math.max(0, state.hero.hp - dmg);
         addLog(`${e.icon}の攻撃！ ${format(dmg)}ダメ！`, "#f44");
         updateUI();
-        if (h.hp <= 0) die();
+        if (state.hero.hp <= 0) die();
         await wait(400);
     }
 
     function win() {
         const gain = Math.floor(state.floor * 10 * state.hero.perma);
         state.pts += gain;
-        addLog(`${state.floor}階層突破！ ${format(gain)} PTS獲得。`, "#ff0");
-        
+        addLog(`${state.floor}F 突破！`, "#ff0");
         state.sp = Math.min(state.hero.msp, state.sp + state.hero.msp * 0.1);
         state.floor++;
-
-        saveGame(); // 勝利時に保存
+        saveLocal();
         setTimeout(showStatMenu, 600);
     }
 
     function die() {
-        addLog("勇者は力尽きた...", "red");
+        addLog("敗北。1階へ戻る。", "red");
         setTimeout(() => {
-            state.floor = 1;
-            state.hero.hp = state.hero.maxHp;
-            state.sp = state.hero.msp;
-            state.isBusy = false;
-            saveGame(); // 敗北時も階層リセットを保存
-            showStatMenu();
+            state.floor = 1; state.hero.hp = state.hero.maxHp; state.sp = state.hero.msp;
+            state.isBusy = false; saveLocal(); showStatMenu();
         }, 1200);
     }
 
@@ -307,61 +302,46 @@
             <button class="btn-cmd" onclick="prestige()" style="flex:1; border-color:#f0f; text-align:center;">転生</button>
             <button class="btn-cmd" onclick="startFloor()" style="flex:1; border-color:#0f0; text-align:center;">次へ</button>
         </div>
-        <button onclick="resetData()" style="margin-top:15px; background:none; border:none; color:#555; cursor:pointer; font-size:10px;">RESET ALL DATA</button>`;
+        <div class="save-controls">
+            <button class="btn-small" onclick="exportCode()">コード発行</button>
+            <button class="btn-small" onclick="importCode()">コード入力</button>
+            <button class="btn-small" onclick="resetAll()">全消去</button>
+        </div>`;
     }
 
     function upgrade(t) {
         let cost = getCost(t);
         if (state.pts < cost) return;
-        state.pts -= cost;
-        state.upgrades[t]++;
-        let h = state.hero;
-        if(t==='hp'){ h.maxHp += 10; }
-        if(t==='atk') h.atk += 1;
-        if(t==='def') h.def += 1;
-        if(t==='sp') h.msp += 2;
-        h.hp = h.maxHp;
-        
-        saveGame(); // ステータス割り振り時に保存
-        showStatMenu(); 
-        updateUI();
+        state.pts -= cost; state.upgrades[t]++;
+        if(t==='hp') state.hero.maxHp += 10;
+        if(t==='atk') state.hero.atk += 1;
+        if(t==='def') state.hero.def += 1;
+        if(t==='sp') state.hero.msp += 2;
+        state.hero.hp = state.hero.maxHp;
+        saveLocal(); showStatMenu(); updateUI();
     }
 
     function prestige() {
-        if (state.floor < 10) { alert("10階層まで到達してください。"); return; }
-        if (!confirm("転生しますか？PTSと能力がリセットされます。")) return;
-        state.hero.perma += 0.5;
-        state.floor = 1;
+        if (state.floor < 10) return alert("10F到達が必要。");
+        if (!confirm("転生しますか？")) return;
+        state.hero.perma += 0.5; state.floor = 1;
         state.hero.maxHp = 50; state.hero.atk = 5; state.hero.def = 2; state.hero.msp = 10;
         state.upgrades = { hp:0, atk:0, def:0, sp:0 };
-        state.pts = 0;
-        state.hero.hp = 50; state.sp = 10;
-
-        saveGame(); // 転生時に保存
-        showStatMenu(); updateUI();
+        state.pts = 0; state.hero.hp = 50; state.sp = 10;
+        saveLocal(); showStatMenu(); updateUI();
     }
 
     function startFloor() {
         state.hero.hp = state.hero.maxHp;
         document.getElementById('overlay').style.display = 'none';
         document.getElementById('log').innerHTML = "";
-        state.isBusy = false; 
-        spawn();
+        state.isBusy = false; spawn();
     }
 
-    function resetData() {
-        if(confirm("全セーブデータを消去しますか？")) {
-            localStorage.removeItem(SAVE_KEY);
-            location.reload();
-        }
-    }
-
+    function resetAll() { if(confirm("データを消去しますか？")) { localStorage.removeItem(LOCAL_KEY); location.reload(); } }
     function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-    // ゲーム開始時の処理
-    loadGame();
+    loadLocal();
     spawn();
-
 </script>
 </body>
 </html>
